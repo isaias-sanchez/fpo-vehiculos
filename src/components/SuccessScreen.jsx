@@ -11,7 +11,27 @@ export default function SuccessScreen({ data, onReset }) {
             margin: [10, 10, 10, 10],
             filename: `Inspeccion_${data.vehiculoTipo}_${new Date().toLocaleDateString()}.pdf`,
             image: { type: 'jpeg', quality: 0.98 },
-            html2canvas: { scale: 2, useCORS: true },
+            html2canvas: { 
+                scale: 2, 
+                useCORS: true,
+                onclone: (clonedDoc) => {
+                    // Fix for html2canvas crashing with oklch colors
+                    const stripOklch = (text) => text.replace(/([a-zA-Z0-9-]+)\s*:\s*([^;}]*oklch[^;}]*)(;|\})/gi, (m, prop, val, end) => end === '}' ? '}' : '');
+                    
+                    clonedDoc.querySelectorAll('style').forEach(s => {
+                        if (s.textContent && s.textContent.includes('oklch')) {
+                            s.textContent = stripOklch(s.textContent);
+                        }
+                    });
+
+                    clonedDoc.querySelectorAll('[style]').forEach(el => {
+                        const styleAttr = el.getAttribute('style');
+                        if (styleAttr && styleAttr.includes('oklch')) {
+                            el.setAttribute('style', stripOklch(styleAttr));
+                        }
+                    });
+                }
+            },
             jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
         };
         html2pdf().set(opt).from(element).save();
